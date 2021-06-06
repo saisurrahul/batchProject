@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="3389fe1b-4f95-409e-9f7d-02173b76e77c" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="7ee96f94-01b4-4f83-9320-5a532aec9dfc" file="listener-config.properties" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="8b4beed4-a671-4518-8bbb-487dd35c1d9c" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="sairam" database="database" />
+	</db:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="eeddb813-38bf-480b-8962-517c087e7b16" >
+		<salesforce:basic-connection username="munnas@123.com" password="Siddhu@123" securityToken="0f94ZcfPZBJPTPdOUEOYZOZb" />
+	</salesforce:sfdc-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7cea4d4b-fed0-4fcd-b8de-f98cc80ba4d9" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="77a1f4a1-3525-4674-a727-e15d92b0c096" />
+	<flow name="practice-1Flow" doc:id="d9b6d738-dc7b-4065-9b75-bf300622c93c" >
+		<http:listener doc:name="Listener" doc:id="61e10abe-b24f-418a-a1de-44ceb16512bd" config-ref="HTTP_Listener_config" path="/practice1"/>
+		<set-variable value="#[payload.city]" doc:name="Set Variable" doc:id="919b48cc-0d05-4380-87b2-a3708927741f" variableName="city"/>
+		<http:request method="GET" doc:name="Request" doc:id="5473741e-4c3f-434d-b018-c277e53b1107" url="http://api.openweathermap.org/data/2.5/weather">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"appid" : "a551467b4ea76828445b23d8ac123ddc",
+	"q" : vars.city
+}]]]></http:query-params>
+		</http:request>
+		<set-payload value="#[vars.city]" doc:name="Set Payload" doc:id="4e3f6df1-4390-4aa4-8fd9-53dce2d0b162" />
+		<choice doc:name="Choice" doc:id="5c93848e-c072-4d84-8889-7b350133f05e" >
+			<when expression='#[upper(vars.city) == "HYDERABAD"]'>
+				<ee:transform doc:name="Transform Message" doc:id="0955ffd4-35bb-4276-babe-371c08f47b83" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="e3a99b9c-ad7d-4598-abe2-96d406fb6f18" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"message"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="83bcbecd-04e6-4f12-9c14-93a4b38ab4cd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="dcf0dc59-5950-4705-ba68-320d9090e694" name="childflow"/>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="292238e3-a259-44d8-9d25-a041c187cfd5" />
+		<logger level="INFO" doc:name="Logger" doc:id="0af6ada0-e782-454e-8766-6db33b906060" message="#[payload]"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="6f77a470-3fb8-4a1c-a6ff-4e449e9c1b73" >
+			<route >
+				<db:select doc:name="Select" doc:id="c624f4f0-61fa-4d86-85cf-584e321deeb9" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from database.employeedetails]]></db:sql>
+				</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="aab50a44-7df9-4bf5-844b-1a7466811a14" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</route>
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="0f59ce59-a306-4715-9acc-09aaf7e3be1c">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</route>
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="52fa0c62-77ee-4c46-b4d3-fd8290cc29b6" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="0c057566-3162-4d92-933a-79d4e83c9122" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload[0].payload.empid]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="childflow" doc:id="ba329252-70e7-4783-a240-20fd4938541a" >
+		<http:listener doc:name="Listener" doc:id="712f16e7-fb70-4af3-9710-c870db54a0ef" config-ref="HTTP_Listener_config" path="/childpractice"/>
+		<ee:transform doc:name="Transform Message" doc:id="6c6f06d9-d398-4687-9b82-32919949ae46" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"child":"this is child practice"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="practice-1Flow1" doc:id="203f2733-e6e4-4218-8f76-aef84322d223" >
+		<http:listener doc:name="Listener" doc:id="21a9656e-dd1a-49ca-958d-85978aaef17f" config-ref="HTTP_Listener_config" path="/practice2"/>
+		<set-variable value="#[payload.name]" doc:name="Set Variable" doc:id="16933bb7-56ad-4f9d-a52e-2783faeeb50d" variableName="name"/>
+		<http:request method="GET" doc:name="Request" doc:id="9d5abdd0-5d65-4f32-9d4b-e76e24828be9" url="https://api.genderize.io" config-ref="HTTP_Request_configuration">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"name" : vars.name
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="8cd83f46-b12f-45d2-8d01-5bf08ee7ecd5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="practice-1Flow2" doc:id="ab933aa4-fc30-429e-8c9c-40a8ee3c352e" >
+		<http:listener doc:name="Listener" doc:id="3b057f8e-9943-431e-9c08-209a67ffdadb" config-ref="HTTP_Listener_config" path="/batch1"/>
+		<set-payload value='#[[1,2,"apple",4,"banana"]]' doc:name='[1,2,"apple",4,"banana"]' doc:id="544c88c5-b209-4ed9-bdcb-ccb9a17e231b" />
+		<batch:job jobName="practice-1Batch_Job" doc:id="7fbf4027-9d5d-466b-a104-558f50e90e4b" maxFailedRecords="1">
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="f5886520-2739-471b-9a02-47f44669e116">
+					<try doc:name="Try" doc:id="77c65256-59fc-4f03-8d4a-d5f779aad609" >
+						<set-payload value="#[payload * 10]" doc:name="Set Payload" doc:id="eb0034ba-bfa7-4d99-9412-f12e38846abc" />
+						<error-handler>
+							<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="09550b60-21c2-408c-9d10-3f82daacf5a3" >
+								<set-variable value="#[(vars.failed default []) + payload]" doc:name="Set Variable" doc:id="4b9ca4a0-9e9d-444e-9606-91f08a13f739" variableName="failed"/>
+								<logger level="INFO" doc:name="Logger" doc:id="6a7753e0-39ad-44b2-b9f7-7e6ac23a4867" />
+							</on-error-propagate>
+						</error-handler>
+					</try>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="79930a48-6b93-4a68-9111-82a4d5fd6625" size="2">
+						<logger level="INFO" doc:name="Logger" doc:id="22fac533-13ab-4d2f-a32a-30a2f49e34ac" message="#[payload]"/>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="Batch_Step1" doc:id="7a8eb7d3-2ae8-4cfa-8b65-89054c9d10c7" acceptPolicy="ONLY_FAILURES">
+					<logger level="INFO" doc:name="Logger" doc:id="cd75056b-93a9-4031-bac4-6b9912277bd5" message="#[payload]"/>
+					<file:write doc:name="Write" doc:id="52a3b39c-a998-4c59-8966-7e96ade4bd27" config-ref="File_Config" path="C:\Users\Gouthami\AnypointStudio\studio-workspace\batch\failed"/>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="1c24570b-a83c-4eb4-b22e-dc87e960460a" message="#[payload]"/>
+			</batch:on-complete>
+		</batch:job>
+		<ee:transform doc:name="Transform Message" doc:id="bd2fdb92-1c35-4ae7-83fe-581a82a43508" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
